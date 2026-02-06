@@ -342,10 +342,11 @@ router.post('/upload', auth, upload.single('file'), async (req, res) => {
       storageUsed: user.storageUsed // Return updated storage
     });
   } catch (error) {
-    console.error('File upload error:', error);
+    console.error('File upload error:', error.message);
+    console.error('Full error:', JSON.stringify(error, null, 2));
     res.status(500).json({
       success: false,
-      message: 'Server error during file upload'
+      message: error.message || 'Server error during file upload'
     });
   }
 });
