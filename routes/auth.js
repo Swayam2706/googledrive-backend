@@ -242,7 +242,9 @@ router.post('/forgot-password', [
     try {
       await sendPasswordResetEmail(user, resetToken);
     } catch (emailError) {
-      console.error('Email sending error:', emailError);
+      console.error('Email sending error:', emailError.message);
+      console.error('Email error code:', emailError.code);
+      console.error('Email error response:', emailError.response);
       return res.status(500).json({
         success: false,
         message: 'Failed to send reset email. Please try again later.'
