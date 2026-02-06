@@ -1,41 +1,22 @@
-const nodemailer = require('nodemailer');
+const { Resend } = require('resend');
 
-const createEmailTransporter = () => {
-  console.log('Email config:', {
-    user: process.env.EMAIL_USER ? 'SET' : 'MISSING',
-    pass: process.env.EMAIL_PASS ? 'SET' : 'MISSING'
-  });
-  
-  return nodemailer.createTransport({
-    host: 'smtp.gmail.com',
-    port: 465,
-    secure: true,
-    auth: {
-      user: process.env.EMAIL_USER,
-      pass: process.env.EMAIL_PASS,
-    },
-    tls: {
-      rejectUnauthorized: false
-    },
-    connectionTimeout: 10000,
-    greetingTimeout: 10000,
-    socketTimeout: 15000
-  });
+const getResend = () => {
+  return new Resend(process.env.RESEND_API_KEY);
 };
 
 const sendActivationEmail = async (user, activationToken) => {
-  const transporter = createEmailTransporter();
+  const resend = getResend();
 
   const activationUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/activate-account?token=${activationToken}`;
   console.log('Activation Link:', activationUrl);
 
-  const mailOptions = {
-    from: process.env.EMAIL_USER,
+  const { error } = await resend.emails.send({
+    from: 'CloudVault <onboarding@resend.dev>',
     to: user.email,
     subject: 'Activate Your Account',
     html: `
       <div style="max-width: 600px; margin: 0 auto; padding: 20px; font-family: Arial, sans-serif;">
-        <h2 style="color: #333;">Welcome to Drive Storage!</h2>
+        <h2 style="color: #333;">Welcome to CloudVault!</h2>
         <p>Hi ${user.firstName} ${user.lastName},</p>
         <p>Thank you for registering. Please click the button below to activate your account:</p>
         <div style="text-align: center; margin: 30px 0;">
@@ -52,18 +33,21 @@ const sendActivationEmail = async (user, activationToken) => {
         </p>
       </div>
     `
-  };
+  });
 
-  await transporter.sendMail(mailOptions);
+  if (error) {
+    console.error('Resend activation email error:', error);
+    throw new Error(error.message);
+  }
 };
 
 const sendPasswordResetEmail = async (user, resetToken) => {
-  const transporter = createEmailTransporter();
+  const resend = getResend();
 
   const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/reset-password?token=${resetToken}`;
 
-  const mailOptions = {
-    from: process.env.EMAIL_USER,
+  const { error } = await resend.emails.send({
+    from: 'CloudVault <onboarding@resend.dev>',
     to: user.email,
     subject: 'Reset Your Password',
     html: `
@@ -85,9 +69,12 @@ const sendPasswordResetEmail = async (user, resetToken) => {
         </p>
       </div>
     `
-  };
+  });
 
-  await transporter.sendMail(mailOptions);
+  if (error) {
+    console.error('Resend reset email error:', error);
+    throw new Error(error.message);
+  }
 };
 
 module.exports = {
