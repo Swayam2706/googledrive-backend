@@ -1,47 +1,52 @@
-const { Resend } = require('resend');
 const nodemailer = require('nodemailer');
 
-// Use Resend API in production, nodemailer locally
-const sendEmail = async (to, subject, html) => {
-  if (process.env.RESEND_API_KEY) {
-    // Production: Use Resend HTTP API (works on Render free tier)
-    const resend = new Resend(process.env.RESEND_API_KEY);
-    
-    const { data, error } = await resend.emails.send({
-      from: 'CloudVault <onboarding@resend.dev>',
-      to,
+// Send email via Brevo HTTP API (works on Render free tier)
+const sendEmailViaBrevo = async (to, subject, html) => {
+  const response = await fetch('https://api.brevo.com/v3/smtp/email', {
+    method: 'POST',
+    headers: {
+      'accept': 'application/json',
+      'api-key': process.env.BREVO_API_KEY,
+      'content-type': 'application/json'
+    },
+    body: JSON.stringify({
+      sender: { name: 'CloudVault', email: process.env.EMAIL_USER || 'cloudvault59@gmail.com' },
+      to: [{ email: to }],
       subject,
-      html
-    });
+      htmlContent: html
+    })
+  });
 
-    if (error) {
-      console.error('Resend error:', error);
-      throw new Error(error.message);
-    }
-    
-    console.log('Email sent via Resend:', data?.id);
-    return data;
-  } else {
-    // Local development: Use Gmail SMTP
-    const transporter = nodemailer.createTransport({
-      host: process.env.EMAIL_HOST || 'smtp.gmail.com',
-      port: parseInt(process.env.EMAIL_PORT) || 587,
-      secure: false,
-      auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS,
-      },
-    });
-
-    await transporter.sendMail({
-      from: process.env.EMAIL_USER,
-      to,
-      subject,
-      html
-    });
-    
-    console.log('Email sent via SMTP to:', to);
+  const data = await response.json();
+  
+  if (!response.ok) {
+    console.error('Brevo error:', data);
+    throw new Error(data.message || 'Failed to send email');
   }
+  
+  console.log('Email sent via Brevo to:', to);
+  return data;
+};
+
+// Send email - uses Brevo in production, SMTP locally
+const sendEmail = async (to, subject, html) => {
+  if (process.env.BREVO_API_KEY) {
+    return sendEmailViaBrevo(to, subject, html);
+  }
+  
+  // Local development: Use Gmail SMTP
+  const transporter = nodemailer.createTransport({
+    host: process.env.EMAIL_HOST || 'smtp.gmail.com',
+    port: parseInt(process.env.EMAIL_PORT) || 587,
+    secure: false,
+    auth: {
+      user: process.env.EMAIL_USER,
+      pass: process.env.EMAIL_PASS,
+    },
+  });
+
+  await transporter.sendMail({ from: process.env.EMAIL_USER, to, subject, html });
+  console.log('Email sent via SMTP to:', to);
 };
 
 const sendActivationEmail = async (user, activationToken) => {
