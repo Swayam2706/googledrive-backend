@@ -30,21 +30,7 @@ const app = express();
 // Connect to database
 connectDB();
 
-// Security middleware
-app.use(helmet());
-
-// Rate limiting
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // limit each IP to 100 requests per windowMs
-  message: {
-    success: false,
-    message: 'Too many requests from this IP, please try again later.'
-  }
-});
-app.use('/api/', limiter);
-
-// CORS configuration
+// CORS configuration - MUST be before helmet and other middleware
 const allowedOrigins = [
   process.env.FRONTEND_URL,
   // Allow localhost for development
@@ -69,6 +55,22 @@ app.use(cors({
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
+
+// Security middleware - after CORS
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: "cross-origin" }
+}));
+
+// Rate limiting
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // limit each IP to 100 requests per windowMs
+  message: {
+    success: false,
+    message: 'Too many requests from this IP, please try again later.'
+  }
+});
+app.use('/api/', limiter);
 
 // Body parser middleware
 app.use(express.json({ limit: '10mb' }));
