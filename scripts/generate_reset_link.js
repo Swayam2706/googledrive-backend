@@ -23,7 +23,7 @@ const generateResetLink = async () => {
         const resetToken = user.generatePasswordResetToken();
         await user.save();
 
-        const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+        const frontendUrl = process.env.FRONTEND_URL;
         const link = `${frontendUrl}/reset-password/${resetToken}`;
 
         // Write to file
