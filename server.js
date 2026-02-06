@@ -31,30 +31,21 @@ const app = express();
 connectDB();
 
 // CORS configuration - MUST be before helmet and other middleware
-const allowedOrigins = [
-  process.env.FRONTEND_URL,
-  // Allow localhost for development
-  ...(process.env.NODE_ENV !== 'production' ? ['http://localhost:3000', 'http://localhost:3001'] : [])
-].filter(Boolean);
-
-console.log('Allowed CORS origins:', allowedOrigins);
+console.log('FRONTEND_URL:', process.env.FRONTEND_URL);
 
 app.use(cors({
-  origin: function(origin, callback) {
-    // Allow requests with no origin (mobile apps, Postman, etc.)
-    if (!origin) return callback(null, true);
-    
-    if (allowedOrigins.indexOf(origin) !== -1) {
-      callback(null, true);
-    } else {
-      console.warn(`CORS blocked origin: ${origin}`);
-      callback(new Error('Not allowed by CORS'));
-    }
-  },
+  origin: [
+    process.env.FRONTEND_URL,
+    'http://localhost:3000',
+    'http://localhost:3001'
+  ].filter(Boolean),
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
+
+// Handle preflight requests explicitly
+app.options('*', cors());
 
 // Security middleware - after CORS
 app.use(helmet({
